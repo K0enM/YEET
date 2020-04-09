@@ -3,11 +3,12 @@ import requests
 import re
 import webbrowser
 from colorama import Fore, Style
+import validators
 
 
 class Terminal(cmd.Cmd):
     intro = "Welcome to the molenaar shell. Type help or ? to list commands"
-    prompt = '[$] '
+    prompt = f'{Fore.MAGENTA}[$] {Style.RESET_ALL}'
     links = []
 
     def do_search_channel(self, url):
@@ -27,6 +28,7 @@ class Terminal(cmd.Cmd):
                                                                                                         0),
                                                                                                     reset=Style.RESET_ALL))
                     self.links.append(match.group())
+                    self.links = [i for n, i in enumerate(self.links) if i not in self.links[:n]]
             else:
                 print(f"{Fore.RED}Please enter a valid url starting with http:// or https://{Style.RESET_ALL}")
         else:
@@ -46,9 +48,10 @@ class Terminal(cmd.Cmd):
                                                                                                     start=match.start(),
                                                                                                     end=match.end(),
                                                                                                     match=match.group(
-                                                                                                        0),
+                                                                                                    ),
                                                                                                     reset=Style.RESET_ALL))
                     self.links.append(match.group())
+                    self.links = [i for n, i in enumerate(self.links) if i not in self.links[:n]]
             else:
                 print(f"{Fore.RED}Please enter a valid url starting with http:// or https://{Style.RESET_ALL}")
         else:
@@ -76,16 +79,27 @@ class Terminal(cmd.Cmd):
 
     def do_show(self, arg):
         """Shows all stored matches"""
+        if len(self.links) == 0:
+            print(f"{Fore.BLUE}No matches stored{Style.RESET_ALL}")
         for link in self.links:
             print(f"{Fore.BLUE}Match: {link} - ID: {self.links.index(link)}{Style.RESET_ALL}")
 
     def do_delete_match(self, arg):
-        """Deletes a certain match from the stored lists of matches"""
+        """Deletes a certain match from the stored list of matches"""
         if arg:
-            print(f"{Fore.CYAN}Deleting match with ID {arg}{Style.RESET_ALL}")
-            self.links.pop(arg)
+            for link in self.links:
+                if self.links.index(link) == int(arg):
+                    print(f"{Fore.CYAN}Deleting match {link} with ID {arg}{Style.RESET_ALL}")
+                    self.links.remove(link)
         else:
             print(f"{Fore.RED}Please enter a match{Style.RESET_ALL}")
+
+    def do_clean(self, arg):
+        """Cleans stored list of matches by removing non url matches"""
+        for link in self.links:
+            if not validators.url(link):
+                self.do_delete_match(self.links.index(link))
+        print(f"{Fore.GREEN}Done cleaning list{Style.RESET_ALL}")
 
     def do_EOF(self, arg):
         """Quits the shell"""
